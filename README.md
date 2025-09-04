@@ -3,7 +3,7 @@
 A lightweight, simple text-based todo list application built with C++. This is not efficient at all, but I wanted to try something new for once.
 ## Features
 
-- Lightweight: Average of 2.7MB RAM Usage
+- Lightweight: Average of 2.8MB RAM Usage
 - Clean & simple command-line interface with easy-to-remember commands and helpful prompts
 - Your tasks are automatically saved during sessions in plain text to the same folder where executable is
 - Add, remove & schedule tasks
