@@ -283,24 +283,32 @@ public:
 
 void showStats() {
     int total = tasks.size();
-    int completedCount = std::count_if(tasks.begin(), tasks.end(), [](const Task& t) { return t.completed; });
+    int completedCount = 0;
+    int scheduledPendingCount = 0;
+    
+    // Single pass through tasks instead of multiple count_if calls
+    for (const Task& t : tasks) {
+        if (t.completed) {
+            completedCount++;
+        } else if (t.scheduled) {
+            scheduledPendingCount++;
+        }
+    }
+    
     int pendingCount = total - completedCount;
-	int scheduledPendingCount = std::count_if(tasks.begin(), tasks.end(),
-    [](const Task& t) { return t.scheduled && !t.completed; });
-
+    
     setConsoleColor(11);
     std::cout << "  STATISTICS:\n  --------------------------------\n";
-	
-	setConsoleColor(13);
+    
+    setConsoleColor(13);
     std::cout << "  Pending (Scheduled): " << scheduledPendingCount << "\n";
-	
+    
     setConsoleColor(12);
     std::cout << "  Pending: " << pendingCount << "\n";
-	
+    
     setConsoleColor(7);
     std::cout << "\n";
 }
-
     void showHelp() {
         clearConsole();
         displayHeader();
