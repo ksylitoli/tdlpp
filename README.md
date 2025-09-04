@@ -13,9 +13,7 @@ A lightweight, simple text-based todo list application built with C++. This is n
 
 ## Roadmap
 
-- More features (probably ;D)
 - Expand more on the task statistics
-- Make the code somewhat readable =D
 
 
 
