@@ -54,6 +54,7 @@ void clearConsole() {
 #else
     system("clear");
 #endif
+
 }
 
 // Task struct representing both regular and scheduled tasks
@@ -67,37 +68,59 @@ struct Task {
         : description(std::move(desc)), completed(comp), scheduled(sched), time(std::move(t)) {}
 };
 
+#include <sstream>  // Make sure this include is present near the top of the file
+
+
+std::vector<std::string> split(const std::string& s, char delimiter) {
+
+    std::vector<std::string> tokens;
+
+    std::stringstream ss(s);
+
+    std::string token;
+
+    while (getline(ss, token, delimiter)) {
+
+        tokens.push_back(token);
+
+    }
+
+    return tokens;
+}
+
 class ArchTodo {
 private:
     std::string dataFile = "tdlpp.txt";
     std::vector<Task> tasks;
 
     void loadTasks() {
-        tasks.clear();
-        std::ifstream file(dataFile);
-        if (!file.is_open()) return;
+    tasks.clear();
+    std::ifstream file(dataFile);
+    if (!file.is_open()) return;
 
-        std::string line;
-        while (std::getline(file, line)) {
-            if (line.empty()) continue;
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.empty()) continue;
 
-            if (line[0] == '1' || line[0] == '0') {
-                bool completed = (line[0] == '1');
-                std::string desc = line.substr(2);
-                tasks.emplace_back(desc, completed, false);
-            } else if (line[0] == 'S') {
-                // Format: S|time|completed|task
-                size_t firstPipe = line.find('|', 2);
-                size_t secondPipe = line.find('|', firstPipe + 1);
-                if (firstPipe != std::string::npos && secondPipe != std::string::npos) {
-                    std::string time = line.substr(2, firstPipe - 2);
-                    bool completed = (line.substr(firstPipe + 1, secondPipe - firstPipe - 1) == "1");
-                    std::string desc = line.substr(secondPipe + 1);
-                    tasks.emplace_back(desc, completed, true, time);
-                }
-            }
+        if (line[0] == '1' || line[0] == '0') {
+            bool completed = (line[0] == '1');
+            std::string desc = line.substr(2);
+            tasks.emplace_back(desc, completed, false);
+            continue;
         }
+
+        if (line[0] == 'S') {
+            auto parts = split(line, '|');
+            if (parts.size() == 4) {
+                bool completed = (parts[2] == "1");
+                tasks.emplace_back(parts[3], completed, true, parts[1]);
+            }
+            continue;
+        }
+
+        // Optionally log/handle unrecognized lines or corrupt data
     }
+}
 
     void saveTasks() {
         std::ofstream file(dataFile);
@@ -123,8 +146,8 @@ private:
 )" << std::endl;
         setConsoleColor(7);
         std::cout << "=========================================================\n";
-        std::cout << "|                 tdl++ - Simple Todo List              |\n";
-        std::cout << "|                     Version 1.0                       |\n";
+        std::cout << "|                 tdl++ - Simple Todo List          	|\n";
+        std::cout << "|                     Version 1.0.1                   	|\n";
         std::cout << "=========================================================\n\n";
     }
 
