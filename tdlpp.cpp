@@ -3,18 +3,57 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <windows.h>
 #include <cstdlib>
 
-// Console color helper
+#ifdef _WIN32
+#include <windows.h>
+#else
+// Linux/macOS color codes
+#define FOREGROUND_RED      0x01
+#define FOREGROUND_GREEN    0x02
+#define FOREGROUND_BLUE     0x04
+#define FOREGROUND_INTENSE  0x08
+#define FOREGROUND_WHITE    (FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+#endif
+
+// Cross-platform console color
 void setConsoleColor(int color) {
+#ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     SetConsoleTextAttribute(hConsole, color);
+#else
+    // ANSI escape codes for Unix-like systems
+    const char* codes[] = {
+        "\033[0m",    // 7: White
+        "\033[31m",   // 12: Red
+        "\033[32m",   // 10: Green
+        "\033[33m",   // 14: Yellow
+        "\033[34m",   // 9: Blue
+        "\033[35m",   // 13: Purple/Magenta
+        "\033[36m"    // 11: Cyan
+    };
+    
+    int index = 0;
+    switch(color) {
+        case 12: index = 1; break; // Red
+        case 10: index = 2; break; // Green
+        case 14: index = 3; break; // Yellow
+        case 9:  index = 4; break; // Blue
+        case 13: index = 5; break; // Purple
+        case 11: index = 6; break; // Cyan
+        default: index = 0; break; // White
+    }
+    std::cout << codes[index];
+#endif
 }
 
-// Clear console
+// Cross-platform console clear
 void clearConsole() {
+#ifdef _WIN32
     system("cls");
+#else
+    system("clear");
+#endif
 }
 
 // Task struct representing both regular and scheduled tasks
