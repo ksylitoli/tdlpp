@@ -1,0 +1,339 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <windows.h>
+#include <cstdlib>
+
+// Console color helper
+void setConsoleColor(int color) {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    SetConsoleTextAttribute(hConsole, color);
+}
+
+// Clear console
+void clearConsole() {
+    system("cls");
+}
+
+// Task struct representing both regular and scheduled tasks
+struct Task {
+    std::string description;
+    bool completed;
+    bool scheduled;
+    std::string time; // valid if scheduled
+
+    Task(std::string desc, bool comp = false, bool sched = false, std::string t = "")
+        : description(std::move(desc)), completed(comp), scheduled(sched), time(std::move(t)) {}
+};
+
+class ArchTodo {
+private:
+    std::string dataFile = "tdlpp.txt";
+    std::vector<Task> tasks;
+
+    void loadTasks() {
+        tasks.clear();
+        std::ifstream file(dataFile);
+        if (!file.is_open()) return;
+
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.empty()) continue;
+
+            if (line[0] == '1' || line[0] == '0') {
+                bool completed = (line[0] == '1');
+                std::string desc = line.substr(2);
+                tasks.emplace_back(desc, completed, false);
+            } else if (line[0] == 'S') {
+                // Format: S|time|completed|task
+                size_t firstPipe = line.find('|', 2);
+                size_t secondPipe = line.find('|', firstPipe + 1);
+                if (firstPipe != std::string::npos && secondPipe != std::string::npos) {
+                    std::string time = line.substr(2, firstPipe - 2);
+                    bool completed = (line.substr(firstPipe + 1, secondPipe - firstPipe - 1) == "1");
+                    std::string desc = line.substr(secondPipe + 1);
+                    tasks.emplace_back(desc, completed, true, time);
+                }
+            }
+        }
+    }
+
+    void saveTasks() {
+        std::ofstream file(dataFile);
+        if (!file.is_open()) {
+            setConsoleColor(12);
+            std::cerr << "Error: Could not save tasks to file!" << std::endl;
+            setConsoleColor(7);
+            return;
+        }
+        for (const auto& t : tasks) {
+            if (t.scheduled) {
+                file << "S|" << t.time << "|" << (t.completed ? "1" : "0") << "|" << t.description << "\n";
+            } else {
+                file << (t.completed ? "1 " : "0 ") << t.description << "\n";
+            }
+        }
+    }
+
+    void displayHeader() {
+        setConsoleColor(11);
+        std::cout << R"(
+
+)" << std::endl;
+        setConsoleColor(7);
+        std::cout << "=========================================================\n";
+        std::cout << "|                 tdl++ - Simple Todo List              |\n";
+        std::cout << "|                     Version 1.0                       |\n";
+        std::cout << "=========================================================\n\n";
+    }
+
+public:
+    ArchTodo() {
+        loadTasks();
+    }
+
+    void addTask(const std::string& desc) {
+        tasks.emplace_back(desc);
+        saveTasks();
+        setConsoleColor(10);
+        std::cout << "[+] Added: ";
+        setConsoleColor(7);
+        std::cout << desc << "\n";
+    }
+
+    void addScheduledTask(const std::string& time, const std::string& desc) {
+        tasks.emplace_back(desc, false, true, time);
+        saveTasks();
+        setConsoleColor(10);
+        std::cout << "[+] Scheduled: ";
+        setConsoleColor(7);
+        std::cout << "[" << time << "] " << desc << "\n";
+    }
+
+    void listTasks() {
+        clearConsole();
+        displayHeader();
+
+        if (tasks.empty()) {
+            setConsoleColor(14);
+            std::cout << "  No tasks found. Use 'add <task>' to create one.\n\n";
+            setConsoleColor(7);
+            return;
+        }
+
+        // Regular tasks
+        bool hasRegular = std::any_of(tasks.begin(), tasks.end(), [](const Task& t) { return !t.scheduled; });
+        if (hasRegular) {
+            setConsoleColor(14);
+            std::cout << "  REGULAR TASKS:\n  --------------------------------\n";
+            setConsoleColor(7);
+            int idx = 1;
+            for (const auto& t : tasks) {
+                if (!t.scheduled) {
+                    std::cout << "  " << idx++ << ".   ";
+                    setConsoleColor(t.completed ? 10 : 12);
+                    std::cout << (t.completed ? "[DONE] " : "[PEND] ");
+                    setConsoleColor(7);
+                    std::cout << t.description << "\n";
+                }
+            }
+            std::cout << "\n";
+        }
+
+        // Scheduled tasks
+        bool hasScheduled = std::any_of(tasks.begin(), tasks.end(), [](const Task& t) { return t.scheduled; });
+        if (hasScheduled) {
+            setConsoleColor(14);
+            std::cout << "  SCHEDULED TASKS:\n  --------------------------------\n";
+            setConsoleColor(7);
+            int idx = 1;
+            for (const auto& t : tasks) {
+                if (t.scheduled) {
+                    std::cout << "  " << idx++ << ".   ";
+                    setConsoleColor(t.completed ? 10 : 13);
+                    std::cout << (t.completed ? "[DONE] " : "[TIME] ");
+                    setConsoleColor(7);
+                    std::cout << "[" << t.time << "] " << t.description << "\n";
+                }
+            }
+            std::cout << "\n";
+        }
+
+        showStats();
+    }
+
+    void markComplete(int id) {
+        if (id < 1 || id > static_cast<int>(tasks.size())) {
+            setConsoleColor(12);
+            std::cout << "Error: Invalid task ID\n";
+            setConsoleColor(7);
+            return;
+        }
+        Task& t = tasks[id - 1];
+        if (t.completed) {
+            setConsoleColor(14);
+            std::cout << "Task is already completed!\n";
+            setConsoleColor(7);
+            return;
+        }
+        t.completed = true;
+        saveTasks();
+        setConsoleColor(10);
+        std::cout << "[OK] Marked as complete: ";
+        setConsoleColor(7);
+        if (t.scheduled) std::cout << "[" << t.time << "] ";
+        std::cout << t.description << "\n";
+    }
+
+    void removeTask(int id) {
+        if (id < 1 || id > static_cast<int>(tasks.size())) {
+            setConsoleColor(12);
+            std::cout << "Error: Invalid task ID\n";
+            setConsoleColor(7);
+            return;
+        }
+        Task t = tasks[id - 1];
+        tasks.erase(tasks.begin() + id - 1);
+        saveTasks();
+        setConsoleColor(14);
+        std::cout << "[-] Removed: ";
+        setConsoleColor(7);
+        if (t.scheduled) std::cout << "[" << t.time << "] ";
+        std::cout << t.description << "\n";
+    }
+
+    void clearCompleted() {
+        clearConsole();
+        displayHeader();
+
+        int clearedCount = std::count_if(tasks.begin(), tasks.end(), [](const Task& t) { return t.completed; });
+        tasks.erase(std::remove_if(tasks.begin(), tasks.end(), [](const Task& t) { return t.completed; }), tasks.end());
+        saveTasks();
+
+        setConsoleColor(10);
+        std::cout << "[OK] Cleared " << clearedCount << " completed tasks\n\n";
+        setConsoleColor(7);
+
+        showStats();
+    }
+
+void showStats() {
+    int total = tasks.size();
+    int completedCount = std::count_if(tasks.begin(), tasks.end(), [](const Task& t) { return t.completed; });
+    int pendingCount = total - completedCount;
+	int scheduledPendingCount = std::count_if(tasks.begin(), tasks.end(),
+    [](const Task& t) { return t.scheduled && !t.completed; });
+
+    setConsoleColor(11);
+    std::cout << "  STATISTICS:\n  --------------------------------\n";
+	
+	setConsoleColor(13);
+    std::cout << "  Pending (Scheduled): " << scheduledPendingCount << "\n";
+	
+    setConsoleColor(12);
+    std::cout << "  Pending: " << pendingCount << "\n";
+	
+    setConsoleColor(7);
+    std::cout << "\n";
+}
+
+    void showHelp() {
+        clearConsole();
+        displayHeader();
+
+        setConsoleColor(14);
+        std::cout << "  Available Commands:\n  -------------------\n";
+        setConsoleColor(7);
+
+        std::cout << "  "; setConsoleColor(10); std::cout << "list"; setConsoleColor(7); std::cout << "          - Show all tasks\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "stats"; setConsoleColor(7); std::cout << "         - Show task statistics\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "add <task>"; setConsoleColor(7); std::cout << "     - Add a new task\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "schedule <time> <task>"; setConsoleColor(7); std::cout << " - Add a scheduled task\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "done <id>"; setConsoleColor(7); std::cout << "      - Mark task as complete\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "rm <id>"; setConsoleColor(7); std::cout << "        - Remove a task\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "clear"; setConsoleColor(7); std::cout << "         - Remove completed tasks\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "help"; setConsoleColor(7); std::cout << "         - Show this help message\n";
+        std::cout << "  "; setConsoleColor(10); std::cout << "exit"; setConsoleColor(7); std::cout << "         - Exit the program\n\n";
+
+        setConsoleColor(14);
+        std::cout << "  Examples:\n  ---------\n";
+        setConsoleColor(7);
+        std::cout << "  add \"Update system packages\"\n";
+        std::cout << "  schedule 14:30 \"Team meeting\"\n";
+        std::cout << "  done 1\n";
+        std::cout << "  rm 2\n";
+        std::cout << "  clear\n";
+        std::cout << "  stats\n\n";
+    }
+};
+
+int main() {
+    ArchTodo todo;
+    std::string command;
+
+    SetConsoleTitle("tdl++ v 1.0");
+    system("mode con: cols=80 lines=30");
+    todo.showHelp();
+
+    while (true) {
+        setConsoleColor(10); std::cout << "user";
+        setConsoleColor(12); std::cout << "@";
+        setConsoleColor(11); std::cout << "tdl++";
+        setConsoleColor(7); std::cout << "> ";
+        std::getline(std::cin, command);
+
+        if (command == "exit" || command == "quit") {
+            break;
+        } else if (command == "list") {
+            todo.listTasks();
+        } else if (command == "stats") {
+            clearConsole();
+            todo.showHelp();
+            todo.showStats();
+        } else if (command == "help") {
+            todo.showHelp();
+        } else if (command == "clear") {
+            todo.clearCompleted();
+        } else if (command.find("add ") == 0) {
+            if (command.length() > 4) {
+                todo.addTask(command.substr(4));
+            } else {
+                setConsoleColor(12); std::cout << "Error: Usage: add <task>\n"; setConsoleColor(7);
+            }
+        } else if (command.find("schedule ") == 0) {
+            size_t spacePos = command.find(' ', 9);
+            if (spacePos != std::string::npos && command.length() > spacePos + 1) {
+                std::string time = command.substr(9, spacePos - 9);
+                std::string task = command.substr(spacePos + 1);
+                todo.addScheduledTask(time, task);
+            } else {
+                setConsoleColor(12); std::cout << "Error: Usage: schedule <time> <task>\n"; setConsoleColor(7);
+            }
+        } else if (command.find("done ") == 0) {
+            try {
+                int id = std::stoi(command.substr(5));
+                todo.markComplete(id);
+            } catch (...) {
+                setConsoleColor(12); std::cout << "Error: Usage: done <id>\n"; setConsoleColor(7);
+            }
+        } else if (command.find("rm ") == 0) {
+            try {
+                int id = std::stoi(command.substr(3));
+                todo.removeTask(id);
+            } catch (...) {
+                setConsoleColor(12); std::cout << "Error: Usage: rm <id>\n"; setConsoleColor(7);
+            }
+        } else if (!command.empty()) {
+            setConsoleColor(12);
+            std::cout << "Unknown command: '" << command << "'\nType 'help' for available commands.\n";
+            setConsoleColor(7);
+        }
+    }
+
+    setConsoleColor(11);
+    std::cout << "Goodbye! May your packages be updated.\n";
+    setConsoleColor(7);
+    return 0;
+}
