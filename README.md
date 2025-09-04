@@ -1,6 +1,6 @@
 # tdl++ - Simple text-based Todo List
 
-A lightweight, simple text-based todo list application built with C++. This is not efficient at all, but I wanted to try something new for once.
+A lightweight, simple text-based todo list application built with C++. This is not efficient at all, but I wanted to try something new for once. I'm not experienced in C++ at all, this is my first project so cut me some slack ;D
 ## Features
 
 - Lightweight: Average of 2.7MB RAM Usage
@@ -15,6 +15,7 @@ A lightweight, simple text-based todo list application built with C++. This is n
 
 - Expand more on the task statistics
 - Make it so tasks are saved in appdata
+- Further optimizations & making the code more readable
 - Maybe new features (?)
 
 
