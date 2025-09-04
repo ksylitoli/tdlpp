@@ -4,7 +4,7 @@ A lightweight, simple text-based todo list application built with C++. This is n
 ## Features
 
 - Lightweight: Average of 2.5MB RAM Usage with the conhost using the most of it
-- Clean & simple command-line interface with easy-to-remember commands with helpful prompts
+- Clean & simple command-line interface with easy-to-remember commands and helpful prompts
 - Your tasks are automatically saved between sessions in plain text
 - Add, remove & schedule tasks
 - Mark tasks as complete
